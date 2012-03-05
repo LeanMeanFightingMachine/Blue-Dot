@@ -38,7 +38,7 @@ namespace.project.View.prototype.start = function( ) {
 	
 
 	//this.dot.addEventListener("click", function(event){ event.preventDefault(); self._dotClickedHandler(event, this);});
-	window.addEventListener("click", function(event){ event.preventDefault(); self._dotClickedHandler(event, this);});
+	window.addEventListener("click", function(event){event.preventDefault(); self._dotClickedHandler(event, this);}, false);
 
 	this._showPosition();
 
@@ -47,13 +47,10 @@ namespace.project.View.prototype.start = function( ) {
 
 
 
-	var loop = setInterval(function(){
-		self.initX += (self.endX - self.initX)/12;
-		self.initY += (self.endY - self.initY)/12;
+	var loop = setInterval(function(){	
 
-		self.dot.style.left = Math.round(self.initX).toString() + "px";
-		self.dot.style.top = Math.round(self.initY).toString() + "px";
-		
+		self._setDotPosition();
+
 	}, 30);
 	
 
@@ -62,20 +59,17 @@ namespace.project.View.prototype.start = function( ) {
 }
 
 namespace.project.View.prototype._dotClickedHandler = function(){
-	var classShapes = new Array("square", "circle", "triangle", "cube" );
+	var self = this;
+
+	var classShapes = new Array("square", "circle", "triangle", "cube", "pacman", "yin-yang" , "infinity");
 	var randomClassShape = classShapes[Math.floor(Math.random()*classShapes.length)];
+	
 
 	document.getElementById('dot').className =  "";
 	if(randomClassShape != "cube"){
-		document.getElementById('dot').className = randomClassShape;
-		// document.getElementsByClassName('topFace').style.display = "none";
-		// document.getElementsByClassName('leftFace').style.display = "none";
-		// document.getElementsByClassName('rightFace').style.display = "none";
-
-		self.dot.style.top = event.pageY - (self.dot.offsetHeight/2)+"px";
-		self.dot.style.left = event.pageX - (self.dot.offsetWidth/2)+"px";
+		self.dot.className = randomClassShape;
 		
-		Logger.debug(self.dot.style.width);
+		this._setDotPosition();
 
 		$('.topFace').css("display", "none");
 		$('.leftFace').css("display", "none");
@@ -116,9 +110,9 @@ namespace.project.View.prototype._fixPageXY = function(event){
 
 	}
 
-
-	this.endY = event.pageY - (self.dot.offsetHeight/2);
-	this.endX = event.pageX - (self.dot.offsetWidth/2);
+	this.endY = event.pageY ;
+	this.endX = event.pageX ;
+	
 	
 }
 
@@ -132,8 +126,17 @@ namespace.project.View.prototype._showPosition = function(){
 		self._fixPageXY(event);
 
 	}
+}
 
-	
+namespace.project.View.prototype._setDotPosition = function(){
+
+	var self = this;
+
+	self.initX += ((self.endX - (self.dot.offsetWidth/2)) - self.initX)/12;
+	self.initY += ((self.endY - (self.dot.offsetHeight/2)) - self.initY)/12;
+
+	self.dot.style.left = Math.round(this.initX).toString() + "px";
+	self.dot.style.top = Math.round(this.initY).toString() + "px";	
 }
 
 

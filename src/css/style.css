@@ -3,9 +3,15 @@
 #dot{text-indent:-9999px; position: absolute;}
  
 .circle{-moz-border-radius: 25px; -webkit-border-radius: 25px; border-radius: 25px; width: 10px; height: 10px; border: 10px solid blue; background: blue;  }
-.triangle{width: 0; height: 0; border-left: 50px solid transparent; border-right: 50px solid transparent;border-bottom: 100px solid blue;}
-.square{width: 50px; height: 50px; border: 50px solid blue; background: blue;}
-
+.triangle{width: 0; height: 0; border-left: 50px solid transparent; border-right: 50px solid transparent;border-bottom: 100px solid blue;-webkit-transition: width 1s linear;}
+.square{width: 25px; height: 25px; border: 25px solid blue; background: blue;-webkit-transition: width 1s linear;}
+.pacman{width: 0px; height: 0px; border-right: 60px solid transparent; border-top: 60px solid blue; border-left: 60px solid blue; border-bottom: 60px solid blue; border-top-left-radius: 60px; border-top-right-radius: 60px; border-bottom-left-radius: 60px; border-bottom-right-radius: 60px;-webkit-transition: width 1s linear;}
+.yin-yang{width: 96px; height: 48px; background: #eee; border-color: blue; border-style: solid; border-width: 2px 2px 50px 2px; border-radius: 100%; position: relative;-webkit-transition: width 1s linear;}
+.yin-yang:before{content: ""; position: absolute; top: 50%; left: 0; background: #eee; border: 18px solid blue; border-radius: 100%; width: 12px; height: 12px;}
+.yin-yang:after{content: ""; position: absolute; top: 50%; left: 50%; background: blue; border: 18px solid #eee; border-radius:100%; width: 12px; height: 12px;} 
+.infinity{position: relative;width: 212px;height: 100px;-webkit-transition: width 1s linear;}
+.infinity:before, .infinity:after{content: ""; position: absolute; top: 0; left: 0; width: 60px; height: 60px;border: 20px solid blue; -moz-border-radius: 50px 50px 0 50px; border-radius: 50px 50px 0 50px; -webkit-transform: rotate(-45deg); -moz-transform: rotate(-45deg); -ms-transform: rotate(-45deg);-o-transform: rotate(-45deg);transform: rotate(-45deg);}
+.infinity:after{left: auto; right: 0; -moz-border-radius: 50px 50px 50px 0; border-radius: 50px 50px 50px 0; -webkit-transform: rotate(45deg); -moz-transform: rotate(45deg); -ms-transform: rotate(45deg); -o-transform: rotate(45deg); transform: rotate(45deg);}	
 
 .cube {position: relative;top: 200px;}
 .rightFace,.leftFace,.topFace div {padding:10px; width:90px; height:90px;}
@@ -19,6 +25,11 @@
 .csstransforms3d .leftface, .csstransforms3d .rightface{-webkit-transform: skewY(30deg)}
 .csstransforms3d .topface div{-webkit-transform: skewY(-30deg) scaleY(1.16); }
 .csstransforms3d .topFace{-webkit-transform: rotate(60deg);}
+
+::selection {
+	color: inherit;
+	background: none;
+};
 
 /*.cube{position: relative; top: 200px;}
 .top{-webkit-transform: rotate(60deg); -moz-transform: rotate(60deg); top: -158px; left: 100px;}
