@@ -1,0 +1,16 @@
+.body{width:100%;margin:0 auto;height:100%}
+#dot{text-indent:-9999px;position:absolute}
+.circle{-moz-border-radius:25px;-webkit-border-radius:25px;border-radius:25px;width:10px;height:10px;border:10px solid blue;background:blue}
+.triangle{width:0;height:0;border-left:50px solid transparent;border-right:50px solid transparent;border-bottom:100px solid blue}
+.square{width:50px;height:50px;border:50px solid blue;background:blue}
+.cube{position:relative;top:200px}
+.rightFace,.leftFace,.topFace div{padding:10px;width:90px;height:90px}
+.rightFace,.leftFace,.topFace{position:absolute;display:none}
+.leftFace{-webkit-transform:skewY(30deg);-moz-transform:skewY(30deg);background-color:#36f;left:-110px}
+.rightFace{-webkit-transform:skewY(-30deg);-moz-transform:skewY(-30deg);background-color:#00F;left:0}
+.topFace div{-webkit-transform:skewY(-30deg) scaleY(1.16);-moz-transform:skewY(-30deg) scaleY(1.16);background-color:#69f;font-size:.862em}
+.topFace{-webkit-transform:rotate(60deg);-moz-transform:rotate(60deg);top:-70px;left:-55px}
+.borderradius .circle{-moz-border-radius:25px;-webkit-border-radius:25px;border-radius:25px}
+.csstransforms3d .leftface,.csstransforms3d .rightface{-webkit-transform:skewY(30deg)}
+.csstransforms3d .topface div{-webkit-transform:skewY(-30deg) scaleY(1.16)}
+.csstransforms3d .topFace{-webkit-transform:rotate(60deg)}

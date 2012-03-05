@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html lang="en" class="no-js">
+	
+	<head>
+	
+		<title>Template</title>
+		
+		<meta name="author" content="@AUTHOR@" />
+		<meta name="copyright" content="Copyright @AUTHOR@ @YEAR@. All Rights Reserved." />
+		<meta name="description" content=" A template for HTML/CSS/JavaScript projects" />
+	
+		<link rel="shortcut icon" href="img/favicon.ico"/>
+		<link rel="apple-touch-icon" href="img/apple-touch-icon.png"/>
+		
+		<!--[if lt IE 9]>
+		<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+		
+		<!--[BEGIN:CSS:LIB]-->
+		<link rel="stylesheet" href="css/lib/reset.css"/>
+		<!--[END]-->
+		
+		<!--[BEGIN:CSS:SRC]-->
+		<link rel="stylesheet" href="css/style.css"/>
+		<!--[END]-->
+		
+	</head>
+	
+	<body>
+		
+		<!-- HTML Content goes here -->
+
+		<div id="dot" class="blueBackground circle">the dot
+			<div class="topFace">
+		        <div>Content</div>
+	        </div>
+	        <div class="leftFace">
+                Content
+	        </div>
+	        <div class="rightFace">
+                Content
+	        </div>
+		</div>
+		Co-ordinate X = <div id="xPosition"></div>
+		Co-ordinate Y = <div id="yPosition"></div>
+	
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+		<script src="js/modernizr.custom.js"></script>
+		<!--[BEGIN:JS:LIB]-->
+		<script src="../lib/closure-library/closure/goog/base.js"></script>
+		<script src="js/deps.js"></script>
+		<!--[END]-->
+		
+		<!--[BEGIN:JS:SRC]-->
+		<script src="js/namespace.project.App.js"></script>
+		<!--[END]-->
+		
+		<script>
+			namespace.project.App();
+			// Modernizr.load([
+			// 	{
+					
+			// 	}
+			// ])
+		</script>
+		
+	</body>
+	
+</html>

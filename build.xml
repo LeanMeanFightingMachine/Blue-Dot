@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+
+	ANT build file for HTML/CSS/JavaScript based projects
+	
+	@author Justin Windle & Fraser Hobbs
+	
+	Minifies CSS using YUI Compressor
+	Compiles JavaScript using Google Closure Compiler
+	Generates JavaScript documentation using JSDoc
+	
+	Usage:
+	
+	$ cd /project/directory/
+	$ ant setup
+	$ ant build
+	$ ant jsdoc
+	$ ant debug
+	
+-->
+
+<project name="Build" default="build" basedir=".">
+	
+	<!--
+	
+		Include the build properties
+		
+	-->
+	
+	<property file="build.properties"/>
+	
+	<!--
+	
+		Shortcut to the types of document to parse
+		
+	-->
+	
+	<property name="pages" value="**/*.htm,**/*.html,**/*.php,**/*.asp,**/*.aspx" />
+	
+	<!--
+	
+		Using Ant-Contrib
+		
+	-->
+	
+	<taskdef resource="net/sf/antcontrib/antlib.xml">
+        <classpath>
+            <pathelement location="${ANT_CONTRIB}"/>
+        </classpath>
+    </taskdef>
+    
+    <!--
+	
+		Update dependencies
+		
+	-->
+	
+	<target name="update" depends="deps" />
+
+	
+	<!--
+	
+		Build
+		
+	-->
+	
+	<target name="build">
+		<delete dir="${BUILD_DIR}"/>
+		<mkdir dir="${BUILD_DIR}"/>
+		
+		<antcall target="copy">
+			<param name="destination" value="${BUILD_DIR}"/>
+		</antcall>
+		<antcall target="minify">
+			<param name="destination" value="${BUILD_DIR}"/>
+		</antcall>
+		<antcall target="temp"/>
+		<antcall target="compile">
+			<param name="destination" value="${BUILD_DIR}"/>
+		</antcall>
+	</target>
+	
+	
+	<!--
+	
+		Deploy
+		
+	-->
+	
+	<target name="deploy">
+		<delete dir="${DEPLOY_DIR}"/>
+		<mkdir dir="${DEPLOY_DIR}"/>
+		
+		<antcall target="copy">
+			<param name="destination" value="${DEPLOY_DIR}"/>
+		</antcall>
+		<antcall target="minify">
+			<param name="destination" value="${DEPLOY_DIR}"/>
+		</antcall>
+		<antcall target="temp"/>
+		<antcall target="tidy"/>
+		<antcall target="compile">
+			<param name="destination" value="${DEPLOY_DIR}"/>
+		</antcall>
+	</target>
+	
+	<!--
+		
+		Tasks for compilation / compression / documentation tools
+		
+	-->
+	
+	<taskdef name="jscomp" classname="com.google.javascript.jscomp.ant.CompileTask" classpath="${COMPILER}" />
+	
+	<macrodef name="yui-minify">
+		<attribute name="target" default="" />
+		<sequential>
+			<echo message="YUI Compressor: Minifying '@{target}'..." />
+			<exec executable="java" failonerror="true">
+				<arg line="-jar ${COMPRESSOR}" />
+				<arg line="-o @{target} @{target}" />
+				<arg line="--line-break 0" />
+				<arg line="--type css" />
+				<arg line="--verbose" />
+			</exec>
+		</sequential>
+	</macrodef>
+
+	<!--
+	
+		Deletes the current build and creates an empty directory
+		
+	-->
+	
+	<target	name="clean">
+		<echo>Cleaning up build directories...
+		</echo>
+		<delete dir="${BUILD_DIR}"/>
+		<mkdir dir="${BUILD_DIR}"/>
+		<delete dir="${DEPLOY_DIR}"/>
+		<mkdir dir="${DEPLOY_DIR}"/>
+	</target>
+	
+	<!--
+	
+		Copy to temp
+		
+	-->
+	
+	<target	name="temp">
+		<echo>Copying to temp...
+		</echo>
+		
+		<delete dir="${TEMP_DIR}"/>
+		<mkdir dir="${TEMP_DIR}"/>
+		
+		<copy toDir="${TEMP_DIR}" verbose="true" >
+			<fileset dir="${SRC_DIR}/${JS_DIR}" />
+		</copy>
+		
+	</target>
+	
+	<!--
+	
+		Tidy up logs
+		
+	-->
+	
+	<target	name="tidy">
+		<echo>Tidying up logs...
+		</echo>
+		
+		<for param="file">
+			
+			<fileset dir="${TEMP_DIR}"/>
+			
+			<sequential>
+				
+				<var name="file" value="@{file}" />
+				<var name="content" unset="true" />
+				<loadfile property="content" srcFile="@{file}"/>
+				
+				<echo>Processing page: @{file}...
+				</echo>
+				
+				<script language="javascript">
+					<![CDATA[
+						function log(msg) { echo = project.createTask("echo"); copy.addTask(echo); echo.setMessage(msg); }
+						
+						var content = project.getProperty( "content" );
+						
+						content = new String( content );
+						
+						content = content.replace( /Logger.debug\(.*\);/g, '' );
+						
+						// update properties
+						
+						project.setProperty( "content", content );
+						
+					]]>
+				</script>
+				
+				<echo  message="${content}" output="@{file}" />
+			</sequential>
+		</for>
+		
+	</target>
+	
+	
+	<!--
+	
+		Refactors the default MVC template ready for use
+		
+	-->
+	
+	<target name="setup">
+		
+		<if>
+			<available file="${SRC_DIR}/${JS_DIR}/namespace.project.${MAIN}.js" />
+			<then>
+				
+				<var name="namespace" value="${NAMESPACE}" />
+				
+				<script language="javascript">
+					<![CDATA[
+						var namespace = new String(project.getProperty( "namespace" ));
+				
+						var valid = namespace.length > 1 && !/[^\.|\w]/g.test( namespace );
+						project.setProperty( "valid", valid );
+				
+						if( valid ) {
+					
+							var parts = namespace.split( '.' );
+							var setup = [];
+
+							while( parts.length > 0 ) {
+								setup.push( parts.join('.') + " = {};" );
+								parts.pop();
+							}
+
+							setup.reverse();
+							setup[0] = "var " + setup[0];
+							setup = setup.join( "\n" );
+
+							var domain = namespace.split( '.' );
+
+							if( domain.length > 1 ) {
+								domain.pop();	
+							}
+
+							setup = "/**\n * The root namespace\n * @const\n */\n" + setup;
+
+							project.setProperty( "domain", domain.join('.') );
+							project.setProperty( "setup", setup );
+						}
+					]]>
+				</script>
+				
+				<if>
+					<equals arg1="${valid}" arg2="true" />
+					<then>
+						
+						<echo>Injecting namespaces...
+						</echo>
+
+						<replaceregexp match="(\W)namespace.project(\W)" flags="g" replace="\1${namespace}\2">
+							<fileset dir="${SRC_DIR}" includes="**/*" />
+						</replaceregexp>
+
+						<replaceregexp match="(\W)namespace(\W)" flags="g" replace="\1${domain}\2">
+							<fileset dir="${SRC_DIR}" includes="**/*" />
+						</replaceregexp>
+
+						<echo>Renaming files...
+						</echo>
+
+						<move verbose="true" todir="${SRC_DIR}"> 
+							<regexpmapper from="^(.*?)namespace\.project\.(.*+)" to="\1${namespace}.\2" />
+							<fileset dir="${SRC_DIR}" includes="**/*" />
+						</move>
+
+						<move verbose="true" todir="${SRC_DIR}"> 
+							<regexpmapper from="^(.*?)namespace\.(.*+)" to="\1${domain}.\2" />
+							<fileset dir="${SRC_DIR}" includes="**/*" />
+						</move>
+						
+						<input message="Remove GIT metadata?" validargs="yes,no" defaultvalue="y" addproperty="disconnect" />
+						
+						<if>
+							<equals arg1="${disconnect}" arg2="yes" />
+							<then>
+								<echo>Removing GIT metadata...
+								</echo>
+								<delete dir=".git"/>
+							</then>
+						</if>
+						
+						<echo>Good to go!
+						</echo>
+						
+					</then>
+					<else>
+						
+						<echo>Invalid namespace "${namespace}"
+						</echo>
+						
+					</else>
+				</if>
+			</then>
+			<else>
+				<echo>Error: Setup has already been run</echo>
+			</else>
+		</if>
+		
+	</target>
+
+	<!--
+	
+		Copies pages to the build directory before replacing paths, 
+		concatenating and copying linked resources
+	
+	-->
+	
+	<target name="copy">
+		
+		<property name="blocks" value="" />
+		<property name="linked" value="" />
+		
+		<echo>Copying static resources...
+		</echo>
+		
+		<copy toDir="${destination}" verbose="true" >
+			<fileset dir="${SRC_DIR}" includes="**/*" excludes="${JS_DIR}/**,${CSS_DIR}/**" />
+		</copy>
+		
+		<echo>Processing pages...
+		</echo>
+		
+		<for param="file">
+			
+			<fileset dir="${destination}" includes="${pages}"/>
+			
+			<sequential>
+				
+				<var name="file" value="@{file}" />
+				<var name="content" unset="true" />
+				<loadfile property="content" srcFile="@{file}"/>
+				
+				<echo>Processing page: @{file}...
+				</echo>
+				
+				<script language="javascript">
+					<![CDATA[
+						
+						function log(msg) { echo = project.createTask("echo"); copy.addTask(echo); echo.setMessage(msg); }
+						
+						var content = project.getProperty( "content" );
+						var linked = project.getProperty( "linked" );
+						
+						var regex = {
+							
+							block:		/<!--\[BEGIN:(JS|CSS):(LIB|SRC)]-->([^!]+)<!--\[END]-->/gim,
+							file: 		/<(script|link)[^>]+(href|src)=["']([^"']+)/gi,
+							output: 	/@(OUTPUT_\w{2,3}_\w{2,3})@/g,
+							protocol: 	/^[A-Z]{2,6}:\/\//gi,
+							author: 	/@AUTHOR@/g,
+							year: 		/@YEAR@/g,
+							type: 		/\.(\w+)$/gi
+						};
+						
+						// concats an item to a text list if unique
+
+						function concatUnique( list, item ) {
+
+							var items  = list.split( ',' );
+
+							for( var i = 0; i < items.length; ++i ) {
+								if( items[i] == item ) {
+									break;
+								}
+							}
+
+							if( i == items.length ) {
+								return items.concat( item ).join( ',' ).replace( /^,|,$/g, '' );
+							}
+
+							return list;
+						}
+						
+						// generates the code needed to embed a resource
+						
+						function getEmbedCode( resource ) {
+							
+							var type = regex.type.exec( resource );
+							regex.type.lastIndex = 0;
+							
+							if( type ) {
+								
+								type = type[1].toLowerCase();
+								
+								if( type == "css" )	return '<link rel="stylesheet" href="' + resource + '"/>';
+								if( type == "js" )	return '<script src="' + resource + '"><\/script>';
+							}
+							
+							return "<!-- Unknown type: " + resource + " -->";
+						}
+						
+						// extract script & style blocks
+
+						for(;block = regex.block.exec( content );) {
+
+							var format = block[1].toLowerCase();
+							var type = block[2].toLowerCase();
+
+							var prop = "blocks." + type + "." + format;
+							var list = project.getProperty( prop ) || '';
+
+							// get all scripts / styles within block
+
+							for(;file = regex.file.exec( block[0] );)
+							{
+								list = concatUnique( list, file[3] );
+							}
+
+							// add placeholder for current block
+							
+							var path = "@OUTPUT_" + type.toUpperCase() + "_" + format.toUpperCase() + "@";
+							if(type == "lib" && format == "js")
+							{
+								content = content.replace( block[0], "" );
+							}
+							else
+							{
+								content = content.replace( block[0], path );
+							}
+
+							// update properties
+							
+							project.setProperty( prop, list );
+
+							regex.block.lastIndex = 0;
+						}
+						
+						// find remaining linked local resources
+						
+						for(;file = regex.file.exec( content );) {
+							
+							if( regex.protocol.test( file[3] ) === false ) {
+								
+								linked = concatUnique( linked, file[3] );
+							}
+						}
+						
+						content = new String( content );
+						
+						// replace block with embedded resource 
+						
+						content = content.replace( regex.output, function( match ) {
+							return getEmbedCode( project.getProperty( match.replace( /^@|@$/g, '' ) ) );
+						} );
+						
+						// Add author and date
+						
+						content = content.replace( regex.author, project.getProperty( "AUTHOR" ) );
+						content = content.replace( regex.year, new Date().getFullYear() );
+						
+						// strip blank lines
+						
+						content = content.replace( /[\r\n]^\s+$/gm, '' );
+						
+						// update properties
+						
+						project.setProperty( "content", content );
+						project.setProperty( "linked", linked );
+					
+					]]>
+				</script>
+				
+				<echo>Updating resource paths...
+				</echo>
+				
+				<echo  message="${content}" output="@{file}" />
+				
+			</sequential>
+		</for>
+
+		
+		<if> 
+   			<isset property="blocks.lib.css"/> 
+   			<then>
+   				<echo>Combining CSS Libraries...
+				</echo>
+				
+				<concat destfile="${destination}/${OUTPUT_LIB_CSS}" append="true">
+					<filelist dir="${SRC_DIR}" files="${blocks.lib.css}"/>
+				</concat>
+			</then>
+		</if>
+		
+		<if> 
+   			<isset property="blocks.src.css"/> 
+   			<then>
+				<echo>Combining CSS Source...
+				</echo>
+				
+				<concat destfile="${destination}/${OUTPUT_SRC_CSS}" append="true">
+					<filelist dir="${SRC_DIR}" files="${blocks.src.css}"/>
+				</concat>
+			</then>
+		</if>
+		
+		<echo>Copying Referenced Files...
+		</echo>
+			
+		<copy todir="${destination}" failonerror="false" verbose="true">
+			<filelist dir="${SRC_DIR}" files="${linked}" />
+		</copy>
+		
+		<!--
+		
+		If the js directory is not created, create it
+		
+		-->
+		<dirname property="directoryProperty" file="${destination}/${OUTPUT_SRC_JS}"/>
+ 		<mkdir dir="${directoryProperty}" />
+ 		
+	</target>
+	
+	<!--
+	
+		Minify the combined css styles with YUI Compressor
+		
+	-->
+	
+	<target name="minify">
+		
+		<if>
+			<resourceexists>
+  				<file file="${destination}/${OUTPUT_LIB_CSS}"/>
+			</resourceexists>
+			<then>
+				<echo>Minify CSS Libraries...
+				</echo>
+				<yui-minify target="${destination}/${OUTPUT_LIB_CSS}" />
+			</then>
+		</if>
+		
+		<if>
+			<resourceexists>
+  				<file file="${destination}/${OUTPUT_SRC_CSS}"/>
+			</resourceexists>
+			<then>
+				<echo>Minify CSS Source...
+				</echo>
+				<yui-minify target="${destination}/${OUTPUT_SRC_CSS}" />
+			</then>
+		</if>
+		
+	</target>
+	
+	<!--
+	
+		Compiles the combined JavaScript with Google Closure Compiler
+		
+	-->
+	
+	<target	name="compile">
+		
+		<echo>Compiling with Closure Compiler...
+		</echo>
+		
+		<exec executable="python" failonerror="yes">
+			<arg line='${CLOSURE_BUILDER}'/>
+			<arg line='--root=${CLOSURE_LIB}' />
+			<arg line='--root=${TEMP_DIR}/'/>
+			<arg line='--namespace="${NAMESPACE}.${MAIN}"'/>
+			<arg line='--output_mode=compiled'/>
+			<arg line='--compiler_jar=${COMPILER}'/>
+			<arg line='--compiler_flags="--compilation_level=${COMPILATION}"'/>
+			<arg line='--compiler_flags="--externs=${TEMP_DIR}/${EXTERNS}"'/>
+			<arg line='--compiler_flags="--warning_level=VERBOSE"'/>
+			<arg line='--output_file=${destination}/${OUTPUT_SRC_JS}'/>
+		</exec>
+		
+		<delete dir="${TEMP_DIR}"/>
+		
+	</target>
+	
+	<!--
+	
+		Create dependencies
+		
+	-->
+	
+	<target	name="deps">
+		
+		<echo>Create dependencies js
+		</echo>
+		
+		<exec executable="python" failonerror="yes">
+			<arg line='${DEPS_WRITER}'/>
+			<arg line='--root_with_prefix="${SRC_DIR}/${JS_DIR}/ ../../../../${SRC_DIR}/${JS_DIR}/"' />
+			<arg line='--output_file=${SRC_DIR}/${JS_DIR}/${DEPS}'/>
+		</exec>
+		
+	</target>
+	
+	<!--
+	
+		Generates documentation using JSDoc
+		
+	-->
+	
+	<target name="jsdoc">
+		
+		<echo>Generating Documentation using JSDoc Toolkit 2.4.0...
+		</echo>
+		
+		<delete dir="${DOCS_DIR}"/>
+		<mkdir dir="${DOCS_DIR}"/>
+		
+		<taskdef name="jsdoctoolkit" classname="uk.co.darrenhurley.ant.tasks.JsDocToolkit" classpath="lib/jsdoc-toolkit/jsdoc-toolkit-ant-task-1.1.2.jar;lib/jsdoc-toolkit/jsrun.jar"/>
+		
+		<jsdoctoolkit jsdochome="lib/jsdoc-toolkit/" template="jsdoc" outputdir="${DOCS_DIR}" includeundocumented="true" includeprivate="true">
+			<fileset dir="${SRC_DIR}/${JS_DIR}/" includes="${NAMESPACE}*" />
+		</jsdoctoolkit>
+		
+	</target>
+	
+</project>
